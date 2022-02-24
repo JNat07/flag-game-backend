@@ -1,6 +1,11 @@
 import { Server } from "socket.io";
 
-var Users: string[] = []
+
+interface ObjectType{
+    socketId: string,
+    name:string
+}
+var Users: ObjectType[]= []
 
 const io = new Server( {cors: {
     origin: "http://localhost:3000"
@@ -9,31 +14,47 @@ const io = new Server( {cors: {
 
 // when someone joins
 io.on("connection", socket => {
-    Users.push(socket.id)
-
-    console.log("=============================")
-    console.log("User joined")
-    console.log("Number of users online: ", Users.length)
-    console.log("Current users: ", Users)
-    console.log("=============================")
-    // emit to all connected clients
-    io.emit("allPlayableUsers", Users)
+ 
 
     // disconnect the user when they request
     socket.on("requestDisconnect", () => {
         socket.disconnect()
     });
     
+    socket.on("sendMyName", (arg)=> {
+  
+        Users.push({
+            socketId: socket.id,
+            name: arg
+        })
+
+        console.log("=============================")
+        console.log("User joined")
+        console.log("Number of users online: ", Users.length)
+        console.log("Current users: ", Users)
+        console.log("=============================")
+        // emit to all connected clients
+        io.emit("allPlayableUsers", Users)
+
+    })
 
     // on user disconnecting, remove from users array and emit lasting players
     socket.on("disconnect", () => {
-        Users.splice(Users.indexOf(socket.id), 1);
+
+        // need to remove person person with id
+        for (var i = Users.length - 1; i >= 0; --i) {
+            if (Users[i].socketId === socket.id) {
+                Users.splice(i, 1);
+
+            }
+        }
+
         console.log("=============================")
         console.log("User left")
         console.log("Number of users online: ", Users.length)
         console.log("Current users: ", Users)
         console.log("=============================")
-        socket.emit("allPlayableUsers", Users)
+        io.emit("allPlayableUsers", Users)
     });
   
 });
