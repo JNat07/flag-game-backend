@@ -9,13 +9,16 @@ var Users: ObjectType[]= []
 
 const io = new Server( {cors: {
     origin: "http://localhost:3000"
-  }});
+}
+});
+  
+
+var room = []
 
 
 // when someone joins
 io.on("connection", socket => {
  
-
     // disconnect the user when they request
     socket.on("requestDisconnect", () => {
         socket.disconnect()
@@ -36,6 +39,12 @@ io.on("connection", socket => {
         // emit to all connected clients
         io.emit("allPlayableUsers", Users)
 
+    })
+
+
+    socket.on("requestOpponent", (opponentID) => {
+        console.log("testing")
+        socket.to(opponentID).emit("requestOpponentResp", "Testing123")
     })
 
     // on user disconnecting, remove from users array and emit lasting players
