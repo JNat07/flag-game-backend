@@ -1,19 +1,20 @@
 import { Server } from "socket.io";
+import { JoinLeave, RequestChange } from "./helpers";
 
-const io = new Server( {cors: {
+const io = new Server({cors: {
     origin: "http://localhost:3000"
-}
-});
+}});
 
-interface ObjectType{
+interface UsersType{
     socketId: string,
     name:string
 }
+
 interface gameRequestsType{
 [key: string]: string[]
 }
 
-var Users: ObjectType[]= []
+var Users: UsersType[]= []
 
 var gameRequests: gameRequestsType = {}
   
@@ -25,7 +26,6 @@ const removeUser = (playerToRemove:string, myID:string):void => {
 const addUser = (opponentID:string,myID:string):void => {
     gameRequests[opponentID].push(myID);  
 }
-
 
 // when someone joins
 io.on("connection", socket => {
@@ -39,37 +39,30 @@ io.on("connection", socket => {
     });
     
     socket.on("sendMyName", (arg)=> {
-  
         Users.push({
             socketId: socket.id,
             name: arg
         })
-
-        console.log("=============================")
-        console.log("User joined")
-        console.log("Number of users online: ", Users.length)
-        console.log("Current users: ", Users)
-        console.log("=============================")
+       JoinLeave(true, Users)
         // emit to all connected clients
         io.emit("allPlayableUsers", Users)
 
     })
 
-
+    // when request opponent
     socket.on("request-Opponent", ({opponentID,myID}) => {
-
         addUser(opponentID, myID)
-    
         // send opponent their own array
-        socket.to(opponentID).emit("inform-opponent-ofPlayer",gameRequests[opponentID])
+        socket.to(opponentID).emit("inform-opponent-ofPlayer", gameRequests[opponentID])
+        RequestChange(gameRequests)
     })
 
+    // when take back request of opponent
     socket.on("remove-Opponent", ({opponentID,myID}) => {
-
         removeUser(opponentID, myID)
-        
         // send opponent their own array
-        socket.to(opponentID).emit("inform-opponent-ofPlayer",gameRequests[opponentID])
+        socket.to(opponentID).emit("inform-opponent-ofPlayer", gameRequests[opponentID])
+        RequestChange(gameRequests)
     })
 
     socket.on("both-Opponent", ({ opponentID, whoIwantToPlay, myID }) => {
@@ -83,12 +76,12 @@ io.on("connection", socket => {
         // tell old person I don't want to play them
         socket.to(whoIwantToPlay).emit("inform-opponent-ofPlayer", gameRequests[whoIwantToPlay])
         // tell new person I want to play against them 
-        socket.to(opponentID).emit("inform-opponent-ofPlayer",gameRequests[opponentID])
+        socket.to(opponentID).emit("inform-opponent-ofPlayer", gameRequests[opponentID])
+        RequestChange(gameRequests)
     })
 
     // on user disconnecting, remove from users array and emit lasting players
     socket.on("disconnect", () => {
-
         // need to remove person person with id
         for (var i = Users.length - 1; i >= 0; --i) {
             if (Users[i].socketId === socket.id) {
@@ -96,19 +89,15 @@ io.on("connection", socket => {
 
             }
         }
-
-        console.log("=============================")
-        console.log("User left")
-        console.log("Number of users online: ", Users.length)
-        console.log("Current users: ", Users)
-        console.log("=============================")
-
-        // delete person who left
+       JoinLeave(false,Users)
+        // delete person who left && emit to all of new absence 
         delete gameRequests[socket.id]
-        
         io.emit("allPlayableUsers", Users)
     });
   
 });
 
+// port to listen on
 io.listen(4000);
+
+export {UsersType, gameRequestsType}
