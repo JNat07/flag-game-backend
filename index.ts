@@ -1,9 +1,10 @@
 import { Server, Socket } from "socket.io";
 import { JoinLeave, RequestChange, requestChecker,removeFromRoom } from "./helpers";
-import {usersType, gameRequestsType,roomsType} from "./types"
+import {usersType,gameRequestsType,roomsType,ServerToClientEvents,ClientToServerEvents,InterServerEvents,SocketData} from "./types"
 
-const io = new Server({cors: {
-    origin: "http://localhost:3000"
+
+const io = new Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>({cors: {
+    origin: "http://localhost:3000" // set origin front-end 
 }});
 
 var users: usersType[] = []
@@ -18,7 +19,7 @@ const removeUser = (playerToRemove:string, myID:string):void => {
 
 const addUser = (opponentID: string, myID: string): void => {
     console.log("MyID: ", myID)
-    console.log("oppenentID: ",opponentID )
+    console.log("opponentID: ",opponentID )
     gameRequests[opponentID].push(myID);  
 }
 
@@ -47,11 +48,10 @@ io.on("connection", (socket: Socket) => {
     // when request opponent
     socket.on("request-Opponent", ({opponentID,myID}) => {
         addUser(opponentID, myID)
+        
         // send opponent their own array
         socket.to(opponentID).emit("inform-opponent-ofPlayer", gameRequests[opponentID])
         RequestChange(gameRequests)
-
-
         requestChecker(opponentID, myID, gameRequests, rooms, allSockets , io)
     })
 
@@ -80,15 +80,11 @@ io.on("connection", (socket: Socket) => {
 
     // on user disconnecting, remove from users array and emit lasting players
     socket.on("disconnect", () => {
-        // console.log(io.sockets.adapter.rooms);
-
         // need to remove person person with id
         for (var i = users.length - 1; i >= 0; --i) {
             if (users[i].id === socket.id) {
                 removeFromRoom(rooms, socket.id)
                 users.splice(i, 1);
-                
-
             }
         }
 
