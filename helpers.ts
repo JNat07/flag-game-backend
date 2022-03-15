@@ -53,6 +53,7 @@ const requestChecker = (
 
         // tell people to start game
         io.to(newRoom).emit("put-in-room");
+        io.to(newRoom).emit("first-flag", chooseCountry());
     }
 };
 
@@ -97,7 +98,10 @@ const chooseCountry = (): string[] => {
         (equalFlags4.includes(countryA) && equalFlags4.includes(countryB))
     );
 
-    return [countryA, countryB];
+    // set question
+    const question = Math.random() > 0.5 ? countryA : countryB;
+
+    return [countryA, countryB, question];
 };
 
 export {
