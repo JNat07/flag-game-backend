@@ -30,7 +30,8 @@ const requestChecker = (
     gameRequests: gameRequestsType,
     rooms: roomsType,
     allSockets: Socket[],
-    io: any
+    io: any,
+    users: usersType[]
 ): void => {
     // if two people requesting eachother
     if (
@@ -53,8 +54,41 @@ const requestChecker = (
 
         // tell people to start game
         io.to(newRoom).emit("put-in-room");
-        io.to(newRoom).emit("first-flag", chooseCountry());
+
+        var gameCountryList: Array<string[]> = [];
+        for (let index = 0; index < Object.keys(countries).length; index++) {
+            gameCountryList.push(chooseCountry());
+        }
+
+        io.to(newRoom).emit("all-flags", gameCountryList);
+
+        for (var i = users.length - 1; i >= 0; --i) {
+            if (users[i].id === person1 || users[i].id === person2) {
+                users.splice(i, 1);
+            }
+        }
+
+        io.emit("allPlayableUsers", users);
     }
+};
+
+const finishedGameEmit = (
+    score: number,
+    socket: Socket,
+    rooms: roomsType,
+    io: any
+) => {
+    Object.keys(rooms).forEach((room) => {
+        var opponent: string = "";
+
+        // if includes, first save other player as opponent and then delete room
+        if (rooms[room].includes(socket.id)) {
+            opponent =
+                rooms[room][0] === socket.id ? rooms[room][1] : rooms[room][0];
+        }
+
+        io.to(opponent).emit("opponent-score", score);
+    });
 };
 
 const removeFromRoom = (rooms: roomsType, personToRemove: string): void => {
@@ -110,4 +144,5 @@ export {
     requestChecker,
     removeFromRoom,
     chooseCountry,
+    finishedGameEmit,
 };
