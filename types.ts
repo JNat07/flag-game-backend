@@ -23,6 +23,7 @@ interface ClientToServerEvents {
     "request-Opponent": ({}) => void;
     "remove-Opponent": ({}) => void;
     "both-Opponent": ({}) => void;
+    "game-event": (arg: string) => void;
 }
 
 interface InterServerEvents {
