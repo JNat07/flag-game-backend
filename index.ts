@@ -4,7 +4,7 @@ import {
     RequestChange,
     requestChecker,
     removeFromRoom,
-    chooseCountry,
+    finishedGameEmit,
 } from "./helpers";
 import {
     usersType,
@@ -72,7 +72,9 @@ io.on("connection", (socket: Socket) => {
             id: socket.id,
             name: arg,
         });
+
         JoinLeave(true, users);
+
         // emit to all connected clients
         io.emit("allPlayableUsers", users);
     });
@@ -86,7 +88,15 @@ io.on("connection", (socket: Socket) => {
             .to(opponentID)
             .emit("inform-opponent-ofPlayer", gameRequests[opponentID]);
         RequestChange(gameRequests);
-        requestChecker(opponentID, myID, gameRequests, rooms, allSockets, io);
+        requestChecker(
+            opponentID,
+            myID,
+            gameRequests,
+            rooms,
+            allSockets,
+            io,
+            users
+        );
     });
 
     // when take back request of opponent
@@ -116,6 +126,10 @@ io.on("connection", (socket: Socket) => {
             .to(opponentID)
             .emit("inform-opponent-ofPlayer", gameRequests[opponentID]);
         RequestChange(gameRequests);
+    });
+
+    socket.on("finished-my-score", (score: number) => {
+        finishedGameEmit(score, socket, rooms, io);
     });
 
     // on user disconnecting, remove from users array and emit lasting players
