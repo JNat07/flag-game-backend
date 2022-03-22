@@ -10,18 +10,37 @@ import {
 } from "./CountryInfo/countries";
 
 const RequestChange = (gameRequests: gameRequestsType) => {
-    console.log("=============================");
+    console.log("\n=============================");
     console.log("Change in requests");
     console.log(gameRequests);
-    console.log("=============================");
+    console.log("=============================\n");
 };
 
 const JoinLeave = (joined: boolean, onlineUsers: usersType[]) => {
-    console.log("=============================");
+    console.log("\n=============================");
     console.log(joined ? "User Joined" : "User left");
     console.log("Number of users online: ", onlineUsers.length);
     console.log("Current users: ", onlineUsers);
-    console.log("=============================");
+    console.log("=============================\n");
+};
+
+const removeUser = (
+    playerToRemove: string,
+    gameRequests: gameRequestsType,
+    myID: string
+): void => {
+    const index = gameRequests[playerToRemove].indexOf(myID);
+    if (index > -1) {
+        gameRequests[playerToRemove].splice(index, 1);
+    }
+};
+
+const addUser = (
+    opponentID: string,
+    gameRequests: gameRequestsType,
+    myID: string
+): void => {
+    gameRequests[opponentID].push(myID);
 };
 
 const requestChecker = (
@@ -87,26 +106,36 @@ const finishedGameEmit = (
                 rooms[room][0] === socket.id ? rooms[room][1] : rooms[room][0];
         }
 
-        io.to(opponent).emit("opponent-score", score);
+        io.to(opponent).emit("opponent-info", score);
     });
 };
 
-const removeFromRoom = (rooms: roomsType, personToRemove: string): void => {
+const removeFromRoom = (
+    rooms: roomsType,
+    users: usersType[],
+    socket: Socket,
+    personToRemove: string
+): void => {
     var opponent: string = "";
     // cycle through all rooms
-    Object.keys(rooms).forEach((room) => {
-        // if includes, first save other player as opponent and then delete room
-        if (rooms[room].includes(personToRemove)) {
-            opponent =
-                rooms[room][0] === personToRemove
-                    ? rooms[room][1]
-                    : rooms[room][0];
-            delete rooms[room];
-        }
-    });
 
-    // need to notify this player
-    console.log(opponent);
+    // need to remove person person with id
+    for (var i = users.length - 1; i >= 0; --i) {
+        if (users[i].id === socket.id) {
+            Object.keys(rooms).forEach((room) => {
+                // if includes, first save other player as opponent and then delete room
+                if (rooms[room].includes(personToRemove)) {
+                    opponent =
+                        rooms[room][0] === personToRemove
+                            ? rooms[room][1]
+                            : rooms[room][0];
+                    delete rooms[room];
+                }
+            });
+
+            users.splice(i, 1);
+        }
+    }
 };
 
 const chooseCountry = (): string[] => {
@@ -138,11 +167,45 @@ const chooseCountry = (): string[] => {
     return [countryA, countryB, question];
 };
 
+const notifyRoom = (rooms: roomsType, socket: Socket, io: any) => {
+    // tell other person in room that their opponent left
+    Object.keys(rooms).forEach((room) => {
+        if (rooms[room].includes(socket.id)) {
+            // tell everyone in room that user left (so tell other player)
+            io.to(room).emit("opponent-left");
+            // remove all sockets from the room (aka deleting room)
+            io.in(room).socketsLeave(room);
+            // delete room in rooms
+            delete rooms[room];
+        }
+        return;
+    });
+};
+
+const removeUserRequest = (gameRequests: gameRequestsType, socket: Socket) => {
+    // remove player from receiving requests
+    delete gameRequests[socket.id];
+
+    // remove this person's requests in other people's arrays
+    Object.keys(gameRequests).forEach((userArr) => {
+        if (gameRequests[userArr].includes(socket.id)) {
+            var index = gameRequests[userArr].indexOf(socket.id);
+            if (index > -1) {
+                gameRequests[userArr].splice(index, 1);
+            }
+        }
+    });
+};
+
 export {
     RequestChange,
+    removeUser,
     JoinLeave,
     requestChecker,
     removeFromRoom,
     chooseCountry,
     finishedGameEmit,
+    notifyRoom,
+    removeUserRequest,
+    addUser,
 };
