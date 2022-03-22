@@ -5,6 +5,10 @@ import {
     requestChecker,
     removeFromRoom,
     finishedGameEmit,
+    notifyRoom,
+    removeUserRequest,
+    addUser,
+    removeUser,
 } from "./helpers";
 import {
     usersType,
@@ -32,17 +36,6 @@ var rooms: roomsType = {};
 var gameRequests: gameRequestsType = {};
 var allSockets: Socket[] = [];
 
-const removeUser = (playerToRemove: string, myID: string): void => {
-    const index = gameRequests[playerToRemove].indexOf(myID);
-    gameRequests[playerToRemove].splice(index, 1);
-};
-
-const addUser = (opponentID: string, myID: string): void => {
-    console.log("MyID: ", myID);
-    console.log("opponentID: ", opponentID);
-    gameRequests[opponentID].push(myID);
-};
-
 // when someone joins
 io.on("connection", (socket: Socket) => {
     // add new users array of people who want to play against them
@@ -51,19 +44,6 @@ io.on("connection", (socket: Socket) => {
 
     // disconnect the user when they request
     socket.on("requestDisconnect", () => {
-        // tell other person in room that their opponent left
-        Object.keys(rooms).forEach((room) => {
-            if (rooms[room].includes(socket.id)) {
-                // tell everyone in room that user left (so tell other player)
-                io.to(room).emit("opponent-left");
-                // remove all sockets from the room (aka deleting room)
-                io.in(room).socketsLeave(room);
-                // delete room in rooms
-                delete rooms[room];
-            }
-            return;
-        });
-
         socket.disconnect();
     });
 
@@ -81,7 +61,7 @@ io.on("connection", (socket: Socket) => {
 
     // when request opponent
     socket.on("request-Opponent", ({ opponentID, myID }) => {
-        addUser(opponentID, myID);
+        addUser(opponentID, gameRequests, myID);
 
         // send opponent their own array
         socket
@@ -101,7 +81,7 @@ io.on("connection", (socket: Socket) => {
 
     // when take back request of opponent
     socket.on("remove-Opponent", ({ opponentID, myID }) => {
-        removeUser(opponentID, myID);
+        removeUser(opponentID, gameRequests, myID);
         // send opponent their own array
         socket
             .to(opponentID)
@@ -114,8 +94,8 @@ io.on("connection", (socket: Socket) => {
         // whoIwantToPlay: socketID used to want to play against
         // myID: my socketID
 
-        removeUser(whoIwantToPlay, myID);
-        addUser(opponentID, myID);
+        removeUser(whoIwantToPlay, gameRequests, myID);
+        addUser(opponentID, gameRequests, myID);
 
         // tell old person I don't want to play them
         socket
@@ -134,17 +114,15 @@ io.on("connection", (socket: Socket) => {
 
     // on user disconnecting, remove from users array and emit lasting players
     socket.on("disconnect", () => {
-        // need to remove person person with id
-        for (var i = users.length - 1; i >= 0; --i) {
-            if (users[i].id === socket.id) {
-                removeFromRoom(rooms, socket.id);
-                users.splice(i, 1);
-            }
-        }
-
+        notifyRoom(rooms, socket, io);
+        removeFromRoom(rooms, users, socket, socket.id);
+        // delete person who left from game requests
+        removeUserRequest(gameRequests, socket);
         JoinLeave(false, users);
-        // delete person who left && emit to all of new absence
-        delete gameRequests[socket.id];
+
+        RequestChange(gameRequests);
+
+        // emit to all of new absence
         io.emit("allPlayableUsers", users);
     });
 });
