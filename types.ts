@@ -18,7 +18,6 @@ interface ServerToClientEvents {
 }
 
 interface ClientToServerEvents {
-    requestDisconnect: () => void;
     sendMyName: (arg: string) => void;
     "request-Opponent": ({}) => void;
     "remove-Opponent": ({}) => void;
