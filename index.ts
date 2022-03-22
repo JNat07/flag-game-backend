@@ -42,11 +42,6 @@ io.on("connection", (socket: Socket) => {
     gameRequests[socket.id] = [];
     allSockets.push(socket);
 
-    // disconnect the user when they request
-    socket.on("requestDisconnect", () => {
-        socket.disconnect();
-    });
-
     socket.on("sendMyName", (arg) => {
         users.push({
             id: socket.id,
@@ -106,6 +101,16 @@ io.on("connection", (socket: Socket) => {
             .to(opponentID)
             .emit("inform-opponent-ofPlayer", gameRequests[opponentID]);
         RequestChange(gameRequests);
+
+        requestChecker(
+            opponentID,
+            myID,
+            gameRequests,
+            rooms,
+            allSockets,
+            io,
+            users
+        );
     });
 
     socket.on("finished-my-score", (score: number) => {
