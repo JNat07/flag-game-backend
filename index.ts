@@ -133,7 +133,7 @@ io.on("connection", (socket: Socket) => {
 });
 
 console.log(process.env.PORT);
-console.log("number: ", +process.env.PORT);
 
+const PORT: number = process.env.PORT ? +process.env.PORT : 2;
 // port to listen on
-io.listen(+process.env.PORT || 4000);
+io.listen(PORT || 4000);
