@@ -25,11 +25,7 @@ const io = new Server<
     ServerToClientEvents,
     InterServerEvents,
     SocketData
->({
-    cors: {
-        origin: "*", // set origin front-end
-    },
-});
+>();
 
 var users: usersType[] = [];
 var rooms: roomsType = {};
