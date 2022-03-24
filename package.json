@@ -1,13 +1,10 @@
 {
     "version": "1.0.0",
-    "type": "module",
-    "main": "index.ts",
+    "main": "index.js",
     "license": "MIT",
     "dependencies": {
-        "add": "^2.0.6",
         "express": "^4.17.3",
-        "socket.io": "^4.4.1",
-        "yarn": "^1.22.18"
+        "socket.io": "^4.4.1"
     },
     "scripts": {
         "start": "nodemon index.ts"
