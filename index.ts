@@ -27,7 +27,7 @@ const io = new Server<
     SocketData
 >({
     cors: {
-        origin: "http://localhost:3000", // set origin front-end
+        origin: "*", // set origin front-end
     },
 });
 
