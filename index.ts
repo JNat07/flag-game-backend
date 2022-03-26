@@ -132,8 +132,8 @@ io.on("connection", (socket: Socket) => {
     });
 });
 
-console.log(process.env.PORT);
+const PORT: number = process.env.PORT ? +process.env.PORT : 4000;
+console.log("Running on port: ", PORT);
 
-const PORT: number = process.env.PORT ? +process.env.PORT : 2;
 // port to listen on
 io.listen(PORT || 4000);
